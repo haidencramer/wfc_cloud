@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wave Function Collapse Generator</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; max-width: 600px; margin: auto; }
+        .hidden { display: none; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        img { max-width: 100%; height: auto; image-rendering: pixelated; margin-top: 20px;}
+    </style>
+</head>
+<body>
+    <h2>Procedural World Generator</h2>
+    <form id="uploadForm">
+        <label>1. Upload Seed Image (Max 64x64):</label><br>
+        <input type="file" id="seed_image" accept="image/png, image/jpeg" required><br><br>
+        <label>2. Pattern Patch Size (2-5):</label><br>
+        <input type="number" id="patch_size" value="3" min="2" max="5"><br><br>
+        <button type="submit">Generate World</button>
+    </form>
+    <div id="loadingArea" class="hidden" style="text-align: center;">
+        <div class="loader"></div>
+        <p id="statusText">Uploading and Queueing...</p>
+    </div>
+    <div id="resultArea" class="hidden">
+        <h3>Generated Map:</h3>
+        <img id="finalImage" src="">
+    </div>
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('uploadForm').classList.add('hidden');
+            document.getElementById('loadingArea').classList.remove('hidden');
+            
+            const formData = new FormData();
+            formData.append('seed_image', document.getElementById('seed_image').files[0]);
+            formData.append('patch_size', document.getElementById('patch_size').value);
+
+            const response = await fetch('/upload', { method: 'POST', body: formData });
+            const data = await response.json();
+
+            if (data.error) {
+                alert("Error: " + data.error);
+                location.reload();
+                return;
+            }
+
+            document.getElementById('statusText').innerText = "Processing Wave Function Collapse...";
+            pollStatus(data.job_id);
+        });
+
+        async function pollStatus(jobId) {
+            const res = await fetch(`/status/${jobId}`);
+            const data = await res.json();
+
+            if (data.status === 'COMPLETE') {
+                document.getElementById('loadingArea').classList.add('hidden');
+                document.getElementById('resultArea').classList.remove('hidden');
+                document.getElementById('finalImage').src = data.output_url;
+            } else if (data.status === 'ERROR') {
+                alert("The background worker encountered an error.");
+                location.reload();
+            } else {
+                setTimeout(() => pollStatus(jobId), 2000);
+            }
+        }
+    </script>
+</body>
+</html>

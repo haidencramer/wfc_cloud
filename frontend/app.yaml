@@ -1,0 +1,6 @@
+runtime: python311
+instance_class: F1
+service: wfc-frontend
+
+env_variables:
+  FIRESTORE_DB_NAME: "wfc-db"
